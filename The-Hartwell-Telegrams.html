@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2a1d20">
+<title>The Hartwell Telegrams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+/* VOICE occasion: a hushed 1914 harbour mystery, played in short sittings
+   IDEA a telegraph office's case file: paper slips, brass fittings, typed wires
+   PICTURE each hand-drawn scene is the board; the poster is a dark lighthouse
+   COLOUR mahogany night ground, telegram paper, brass, verdigris for found, seal red for misses
+   TYPE Old Standard TT (Edwardian print) + Special Elite (typed telegrams)
+   LAYOUT one-screen app: HUD, scene, item slips; phone stacks the same order */
+:root{color-scheme:dark;--bg:#1d1417;--bg2:#2a1d20;--ink:#f1e8d6;--paper:#f1e8d6;--pink:#2a1d1b;--brass:#d0a54a;--verd:#6fb3a2;--seal:#c0493a;--wire:#f1dc8f}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 "Old Standard TT",Georgia,serif;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+#play,.veil{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+button{font:inherit;cursor:pointer;color:inherit}
+button:focus-visible{outline:3px solid var(--verd);outline-offset:2px}
+.btn{min-height:44px;padding:8px 18px;border:0;border-radius:4px;background:var(--brass);color:var(--pink);font-weight:700}
+.btn:hover{background:#e0b85d}
+.ghost{min-height:44px;padding:8px 14px;border:1px solid #6e5650;border-radius:4px;background:transparent}
+.ghost:hover{border-color:var(--brass)}
+.screen{position:absolute;inset:0;display:none}
+.screen.on{display:grid}
+#defs{position:absolute;width:0;height:0}
+/* home */
+#home{overflow:hidden}
+#home>svg{position:absolute;inset:0;width:100%;height:100%}
+.hometext{position:relative;align-self:start;max-width:560px;padding:clamp(24px,6vw,64px) max(5vw,16px)}
+h1{font-size:clamp(36px,6vw,58px);line-height:1.05;letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+.sub{font-style:italic;font-size:20px;color:var(--wire);margin:0 0 16px}
+.hometext p.lead{margin:0 0 22px;max-width:40ch}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+/* board */
+#board{grid-template-rows:auto 1fr;background:var(--bg)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px max(3vw,16px);background:var(--bg2);border-bottom:1px solid #3d2b2f}
+.bar h2{font-size:20px;margin:0 auto 0 0;line-height:1.2}
+.boardbody{overflow-y:auto;padding:20px max(4vw,16px) 40px}
+.boardbody h3{font-size:24px;margin:8px 0 12px;font-weight:700}
+.banner{background:var(--verd);color:var(--pink);padding:12px 16px;border-radius:4px;margin-bottom:18px;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px;max-width:1240px}
+.card{background:var(--paper);color:var(--pink);padding:10px 10px 14px;border-radius:2px;box-shadow:0 2px 0 #0006}
+.card svg{display:block;width:100%;aspect-ratio:5/3;background:#000}
+.card.locked svg{filter:grayscale(1) brightness(.45)}
+.card h4{font-size:20px;margin:10px 2px 2px}
+.card .note{font-size:14px;margin:0 2px 10px;color:#5d4a44}
+.modes{display:grid;gap:6px}
+.mode{display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:6px 12px;border:1px solid #b9a98c;border-radius:4px;background:#fff8ea;color:var(--pink);text-align:left}
+.mode:hover:not(:disabled){border-color:var(--pink)}
+.mode:disabled{opacity:.45;cursor:default}
+.mode .st{color:#9a6b12;letter-spacing:2px;white-space:nowrap}
+.clues{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;max-width:1240px;margin-top:10px}
+.wire{background:var(--wire);color:#2b2414;font-family:"Special Elite",monospace;font-size:15px;line-height:1.5;padding:16px 18px;border-radius:2px;transform:rotate(-.6deg);box-shadow:0 2px 0 #0006}
+.wire:nth-child(2n){transform:rotate(.8deg)}
+.wire b{display:block;font-family:"Old Standard TT",serif;font-size:15px;margin-bottom:6px;border-bottom:1px dashed #8a7a4a;padding-bottom:4px}
+.empty{color:#b8a89c;font-style:italic}
+/* play */
+#play{grid-template-rows:auto minmax(0,1fr) auto auto}
+.hud{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px max(2vw,12px);background:var(--bg2)}
+.hud .scn{font-weight:700;font-size:18px;margin-right:auto}
+.stat{font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat small{color:#b8a89c;font-size:13px;margin-right:4px}
+#stage{position:relative;overflow:auto;background:#0b0809;touch-action:pan-x pan-y;overscroll-behavior:contain;scrollbar-width:none}
+#stage::-webkit-scrollbar{display:none}
+.tipbar{display:flex;justify-content:space-between;gap:12px;margin:0;padding:5px 12px;font-size:13px;line-height:1.3;color:#d8c9b8;background:#0b0809}
+.tipbar[hidden]{display:none}
+#more{white-space:nowrap;color:var(--wire);margin-left:auto}
+.stat.low{color:#ff8a73}
+#stage.locked{opacity:.5;pointer-events:none;transition:opacity .2s}
+.chap{font-size:22px;margin:26px 0 12px}
+.chap:first-child{margin-top:4px}
+.card .diff{display:block;font-size:13px;color:#7a6a5c}
+#stage>svg{display:block;height:100%;width:auto;min-width:100%;aspect-ratio:5/3}
+#stage.zoom>svg{height:200%;min-width:200%}
+#stage.shake>svg{animation:shake .25s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.obj{cursor:pointer}
+.obj .o{transform-box:fill-box;transform-origin:center}
+.obj.got .o{animation:got .6s forwards}
+@keyframes got{to{transform:scale(1.7);opacity:0}}
+.fx{font:700 30px "Old Standard TT",serif;paint-order:stroke;stroke:#000;stroke-width:4px;animation:rise 1s forwards}
+@keyframes rise{to{transform:translateY(-30px);opacity:0}}
+.ring{fill:none;stroke:var(--wire);stroke-width:5;animation:pulse 1s 3}
+@keyframes pulse{0%{opacity:1;stroke-width:8}100%{opacity:.2;stroke-width:2}}
+.list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px max(2vw,12px) max(10px,env(safe-area-inset-bottom));background:var(--bg2)}
+@media(min-width:1000px){.list{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.chip{display:flex;align-items:center;gap:6px;min-height:44px;padding:4px 8px;background:var(--paper);color:var(--pink);border-radius:3px;font-size:14px;line-height:1.15}
+.chip svg{flex:none;width:34px;height:34px}
+.chip.done{background:#cfe6df;color:#3c5a52;text-decoration:line-through}
+.chip.pop{animation:pop .45s}
+@keyframes pop{40%{transform:scale(1.12)}}
+.sil .chip svg{filter:brightness(0)}
+.sil .chip .nm{font-size:0}
+.sil .chip .nm::after{content:"?";font-size:16px;color:#8a7468}
+.sil .chip.done .nm{font-size:14px}
+.sil .chip.done .nm::after{content:none}
+.sil .chip.done svg{filter:none}
+/* dialogue and results */
+.veil{position:fixed;inset:0;background:#0009;display:none;z-index:5}
+.veil.on{display:grid}
+#talk{align-items:end;justify-items:center;padding:16px}
+.say{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;width:min(760px,100%);background:var(--paper);color:var(--pink);padding:16px;border-radius:4px}
+.say.nar{grid-template-columns:minmax(0,1fr)}
+.say.nar .pt{display:none}
+.say.nar .txt{font-style:italic}
+.pt svg{width:96px;height:96px;border-radius:3px;display:block}
+.who{font-weight:700;font-size:18px;margin:0}
+.txt{margin:4px 0 12px;font-size:17px}
+#res{place-items:center;padding:16px;overflow-y:auto}
+.result{width:min(480px,100%);background:var(--paper);color:var(--pink);padding:22px;border-radius:4px;text-align:center}
+.result h3{font-size:30px;margin:0;line-height:1.1}
+.big{font-size:44px;color:#9a6b12;letter-spacing:6px;margin:6px 0}
+.figs{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin:6px 0 14px;font-variant-numeric:tabular-nums}
+.figs b{display:block;font-size:22px}
+.result .wire{text-align:left;margin:0 0 16px;transform:none}
+@media(max-width:600px),(max-height:520px){
+ .hud{flex-wrap:nowrap;gap:6px;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top))}
+ .hud .scn{display:none}
+ #quit{order:-1;margin-right:auto}
+ .hud .ghost{padding:6px 10px;font-size:15px;min-width:44px}
+ .stat{font-size:16px}
+ .stat small{display:none}
+ .stat.sc::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--brass);margin-right:6px;vertical-align:middle}
+ .chip{flex-direction:column;justify-content:center;gap:2px;min-height:58px;padding:4px 2px;text-align:center;font-size:13px;line-height:1.1}
+ .chip svg{width:28px;height:28px}
+ .sil .chip.done .nm{font-size:13px}
+ .say{grid-template-columns:64px minmax(0,1fr);gap:10px;padding:14px;margin-bottom:env(safe-area-inset-bottom)}
+ .pt svg{width:64px;height:64px}
+ .txt{font-size:16px}
+ .say .btn{width:100%}
+ .hometext{padding-top:max(24px,env(safe-area-inset-top))}
+ .figs{gap:14px}
+ .result{padding:18px 16px}
+ .result .row .btn,.result .row .ghost{flex:1}
+}
+@media(max-width:600px) and (orientation:portrait){
+ #home{grid-template-rows:minmax(220px,40%) auto;align-content:start;overflow-y:auto;background:#0b1620}
+ #home>svg{position:relative;inset:auto;height:100%}
+ .hometext{padding-top:18px;padding-bottom:max(24px,env(safe-area-inset-bottom))}
+ #home h1{font-size:38px}
+ #home .lead{font-size:16px}
+ #home .row>*{flex:1}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #play{grid-template-columns:minmax(0,1fr) 200px;grid-template-rows:auto minmax(0,1fr) auto}
+ .hud{grid-column:1/-1}
+ #stage{grid-column:1;grid-row:2}
+ .tipbar{grid-column:1;grid-row:3}
+ .list{grid-column:2;grid-row:2/4;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;overflow-y:auto;padding:6px 8px;padding-right:max(8px,env(safe-area-inset-right))}
+ .chip{min-height:52px}
+ #talk{align-items:center}
+ .say{max-height:calc(100% - 16px);overflow-y:auto}
+ #home .hometext{padding-top:16px}
+ #home h1{font-size:34px}
+ #home .lead{font-size:15px;margin-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg id="defs" aria-hidden="true"><defs>
+<linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9b07a"/><stop offset="1" stop-color="#7f8f96"/></linearGradient>
+<linearGradient id="day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe6e2"/><stop offset="1" stop-color="#8fa6ab"/></linearGradient>
+<linearGradient id="night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1622"/><stop offset="1" stop-color="#27465a"/></linearGradient>
+<linearGradient id="lens" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5f8a99"/><stop offset=".5" stop-color="#d6eef3"/><stop offset="1" stop-color="#5f8a99"/></linearGradient>
+<radialGradient id="lampG"><stop offset="0" stop-color="#000"/><stop offset=".55" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient>
+<radialGradient id="moonG"><stop offset=".25" stop-color="#f1e8d6" stop-opacity=".35"/><stop offset="1" stop-color="#f1e8d6" stop-opacity="0"/></radialGradient>
+<pattern id="stripes" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="20" height="40" fill="#000" opacity=".08"/><circle cx="30" cy="20" r="3" fill="#e9c98a" opacity=".14"/></pattern>
+<pattern id="bricks" width="80" height="40" patternUnits="userSpaceOnUse"><rect width="80" height="40" fill="#7a3a2a"/><path d="M0 0h80M0 20h80M40 0v20M0 20v20M80 20v20" stroke="#4e2219" stroke-width="3"/></pattern>
+<pattern id="damask" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="#2f4a48"/><path d="M25 8l9 17l-9 17l-9-17z" fill="#3b5b58"/><g fill="#c9a03a" opacity=".3"><circle r="3"/><circle cx="50" r="3"/><circle cy="50" r="3"/><circle cx="50" cy="50" r="3"/></g></pattern>
+<pattern id="vplank" width="50" height="600" patternUnits="userSpaceOnUse"><rect width="50" height="600" fill="#3e3026"/><path d="M0 0v600" stroke="#2a2019" stroke-width="3"/><circle cx="25" cy="70" r="2" fill="#2a2019"/><circle cx="25" cy="430" r="2" fill="#2a2019"/></pattern>
+<pattern id="hplank" width="1000" height="64" patternUnits="userSpaceOnUse"><rect width="1000" height="64" fill="#4a3322"/><path d="M0 0h1000M0 32h1000M180 0v32M620 0v32M400 32v32M840 32v32" stroke="#2e1f14" stroke-width="3"/></pattern>
+<radialGradient id="warm"><stop offset="0" stop-color="#f2c46a" stop-opacity=".3"/><stop offset="1" stop-color="#f2c46a" stop-opacity="0"/></radialGradient>
+<pattern id="peg" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#b88a5a"/><circle cx="10" cy="10" r="2" fill="#6b4a2b"/></pattern>
+<g id="o-tele"><g transform="rotate(-4)"><rect x="-24" y="-18" width="48" height="36" fill="#f1dc8f"/><path d="M-16-8h30M-16 0h26M-16 8h20" stroke="#6b5a2a" stroke-width="2"/></g></g>
+<g id="o-watch"><circle cy="-29" r="4" fill="none" stroke="#b8922f" stroke-width="2.5"/><path d="M0-26v5" stroke="#b8922f" stroke-width="3"/><circle r="22" fill="#c9a03a"/><circle r="18" fill="#f3ead2"/><path d="M0 0V-12M0 0l8 4" stroke="#2a1d1b" stroke-width="2" stroke-linecap="round"/><circle r="22" fill="none" stroke="#8a6a1e" stroke-width="2"/></g>
+<g id="o-key"><circle cx="-18" r="9" fill="none" stroke="#a7842c" stroke-width="5"/><path d="M-9 0h34M18 0v8M24 0v6" stroke="#a7842c" stroke-width="5"/></g>
+<g id="o-mag"><path d="M8 8l18 18" stroke="#4a2f22" stroke-width="7" stroke-linecap="round"/><circle cx="-4" cy="-4" r="16" fill="#cfe3e6" fill-opacity=".75" stroke="#9a9a9a" stroke-width="4"/><path d="M-12-10a10 10 0 0 1 8-4" stroke="#fff" stroke-width="2" fill="none"/></g>
+<g id="o-candle"><ellipse cy="22" rx="18" ry="5" fill="#8c6b2a"/><rect x="-7" y="-14" width="14" height="34" fill="#efe6cf"/><path d="M0-14v-5" stroke="#222" stroke-width="1.5"/><path d="M0-34c5 6 5 12 0 14c-5-2-5-8 0-14z" fill="#f2b33d"/></g>
+<g id="o-cup"><ellipse cy="16" rx="26" ry="6" fill="#e8e2d6" stroke="#9fb7c4" stroke-width="2"/><path d="M-18-6h36l-4 18a14 6 0 0 1-28 0z" fill="#f6f2ea" stroke="#9fb7c4" stroke-width="2"/><path d="M18-2c10 0 10 12 0 12" fill="none" stroke="#9fb7c4" stroke-width="3"/><path d="M-10 4h20" stroke="#5c87a0" stroke-width="2"/></g>
+<g id="o-specs"><circle cx="-13" r="10" fill="#dfeef0" fill-opacity=".5" stroke="#3a2b22" stroke-width="3"/><circle cx="13" r="10" fill="#dfeef0" fill-opacity=".5" stroke="#3a2b22" stroke-width="3"/><path d="M-3-2q3-4 6 0M-23-2l-8-6M23-2l8-6" stroke="#3a2b22" stroke-width="2.5" fill="none"/></g>
+<g id="o-pen"><g transform="rotate(-35)"><rect x="-26" y="-4" width="36" height="8" rx="3" fill="#1d3b34"/><rect x="-2" y="-4.5" width="4" height="9" fill="#c9a03a"/><path d="M10-4l14 4l-14 4z" fill="#c9a03a"/><path d="M-20-4v-3h10" stroke="#c9a03a" stroke-width="2" fill="none"/></g></g>
+<g id="o-shoe"><path d="M-14 20V0a14 14 0 0 1 28 0v20" fill="none" stroke="#7a746f" stroke-width="9" stroke-linecap="round"/><g fill="#2c2826"><circle cx="-14" cy="12" r="1.6"/><circle cx="14" cy="12" r="1.6"/><circle cx="-12" cy="-6" r="1.6"/><circle cx="12" cy="-6" r="1.6"/></g></g>
+<g id="o-comp"><circle cx="0" cy="-22" r="3" fill="none" stroke="#8a6a2e" stroke-width="2"/><circle r="20" fill="#8a6a2e"/><circle r="16" fill="#f1e8d2"/><path d="M0-13l4 13h-8z" fill="#a52a2a"/><path d="M0 13l4-13h-8z" fill="#2b3a40"/></g>
+<g id="o-sciss"><path d="M-8 6L24-10M-8-6L24 10" stroke="#9aa3a6" stroke-width="4" stroke-linecap="round"/><circle cx="-14" cy="10" r="7" fill="none" stroke="#2f2f2f" stroke-width="4"/><circle cx="-14" cy="-10" r="7" fill="none" stroke="#2f2f2f" stroke-width="4"/></g>
+<g id="o-bell"><rect x="-22" y="12" width="44" height="6" rx="2" fill="#4a2f22"/><path d="M-18 12a18 18 0 0 1 36 0z" fill="#c9a03a"/><path d="M-10 4a10 10 0 0 1 6-8" stroke="#f3dc8e" stroke-width="2" fill="none"/><rect x="-2" y="-12" width="4" height="6" fill="#8a6a1e"/><circle cy="-13" r="3" fill="#8a6a1e"/></g>
+<g id="o-wrench"><g transform="rotate(30)"><path d="M-28-4H5A11 11 0 0 1 25-6H16V6H25A11 11 0 0 1 5 4H-28Z" fill="#7d8589"/><circle cx="-22" r="2" fill="#3a3f42"/></g></g>
+<g id="o-bulb"><path d="M-14-6a14 14 0 1 1 28 0c0 8-7 10-7 16h-14c0-6-7-8-7-16z" fill="#f4efcf" fill-opacity=".9" stroke="#b9b08a" stroke-width="1.5"/><rect x="-7" y="10" width="14" height="10" fill="#a9a9a0"/><path d="M-7 13h14M-7 17h14" stroke="#77776e"/><path d="M-4 4l2-8l2 6l2-6l2 8" stroke="#c98a2a" fill="none" stroke-width="1.5"/></g>
+<g id="o-oil"><path d="M-16-4l6-8h10l6 8z" fill="#7a2c1f"/><rect x="-16" y="-4" width="22" height="24" fill="#9b3b2a"/><path d="M6 2l22-16" stroke="#7d8589" stroke-width="3"/><path d="M-16 2h-6v12h6" fill="none" stroke="#5a2016" stroke-width="3"/></g>
+<g id="o-anchor"><g fill="none" stroke="#56646b" stroke-width="5" stroke-linecap="round"><circle cy="-20" r="5"/><path d="M0-15v35M-10-8h20M-20 6a20 18 0 0 0 40 0"/></g></g>
+<g id="o-hat"><ellipse cy="10" rx="28" ry="7" fill="#1f1a18"/><path d="M-17 10v-8a17 17 0 0 1 34 0v8z" fill="#3a302d"/><path d="M-17 4h34" stroke="#6a2a2c" stroke-width="4"/></g>
+<g id="o-quill"><g transform="rotate(-40)"><path d="M-28 0q20-14 50-2q-28 10-50 2z" fill="#f1ede4" stroke="#b8b1a2"/><path d="M-30 0h56" stroke="#8a8375" stroke-width="1.5"/></g></g>
+<g id="o-coin"><circle r="12" fill="#d2a93a" stroke="#8a6a1e" stroke-width="2"/><circle r="8" fill="none" stroke="#8a6a1e"/><path d="M-3-4h6M0-4v8" stroke="#8a6a1e" stroke-width="1.5"/></g>
+<g id="o-ink"><rect x="-7" y="-12" width="14" height="8" fill="#2a2a2a"/><path d="M-14 18h28l-3-22h-22z" fill="#25384e"/><path d="M-10 0h20" stroke="#7fa3c6" stroke-width="1.5" opacity=".7"/></g>
+<g id="o-photo"><rect x="-18" y="-22" width="36" height="44" fill="#6b4a2b"/><rect x="-13" y="-17" width="26" height="34" fill="#d9c7a1"/><circle cy="-4" r="6" fill="#6e5a44"/><path d="M-10 17a10 9 0 0 1 20 0z" fill="#6e5a44"/></g>
+<g id="o-locket"><path d="M0-30v16" stroke="#c9a03a" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M0 18C-22 4-20-20 0-12C20-20 22 4 0 18z" fill="#d1aa45" stroke="#8a6a1e" stroke-width="2"/></g>
+<g id="o-match"><rect x="-20" y="-12" width="40" height="24" fill="#c94a2c"/><rect x="-20" y="-12" width="40" height="6" fill="#2b2320"/><rect x="-12" y="-1" width="24" height="9" fill="#f0e2c2"/><path d="M14-16l12-6" stroke="#e8d8b0" stroke-width="2.5"/><circle cx="27" cy="-23" r="2.5" fill="#7a1d12"/></g>
+<g id="o-ticket"><path d="M-26-13h52v8a5 5 0 0 0 0 10v8h-52v-8a5 5 0 0 0 0-10z" fill="#e7c86a"/><path d="M-14-13v26" stroke="#8a6a1e" stroke-dasharray="3 3"/><path d="M-6-4h24M-6 4h16" stroke="#6b4f1a" stroke-width="2"/></g>
+<g id="o-bottle"><path d="M-6-26h12v10q8 6 8 14v24h-28v-24q0-8 8-14z" fill="#3f6b4a" fill-opacity=".92"/><rect x="-7" y="-31" width="14" height="6" fill="#8a6a3a"/><rect x="-10" y="2" width="20" height="12" fill="#efe4c8"/></g>
+<g id="o-ring"><circle cy="4" r="11" fill="none" stroke="#d2a93a" stroke-width="4"/><path d="M-6-8l6-9l6 9z" fill="#bfe3ef" stroke="#8a6a1e" stroke-width="1.5"/></g>
+<g id="o-thim"><path d="M-10 14v-16a10 10 0 0 1 20 0v16z" fill="#b8bcc0"/><rect x="-12" y="12" width="24" height="5" rx="2" fill="#8d9296"/><g fill="#7d8286"><circle cx="-4" cy="-4" r="1.4"/><circle cx="3" cy="-6" r="1.4"/><circle cx="-2" cy="3" r="1.4"/><circle cx="5" cy="2" r="1.4"/><circle cx="-6" cy="8" r="1.4"/><circle cx="2" cy="9" r="1.4"/></g></g>
+<g id="o-lock"><path d="M-10-2v-8a10 10 0 0 1 20 0v8" fill="none" stroke="#8d9296" stroke-width="4"/><rect x="-15" y="-2" width="30" height="24" rx="3" fill="#b8922f"/><circle cy="7" r="3" fill="#3a2a1a"/><path d="M0 8v7" stroke="#3a2a1a" stroke-width="2"/></g>
+<g id="o-pipe"><path d="M-28-4h30v6h-30z" fill="#2a1a12"/><path d="M2-14h16v18a8 8 0 0 1-16 0z" fill="#7a4224"/><ellipse cx="10" cy="-14" rx="8" ry="2.5" fill="#1e120c"/></g>
+<g id="o-spoon"><g transform="rotate(-30)"><ellipse cx="16" rx="10" ry="7" fill="#c7ccd0"/><rect x="-26" y="-2" width="34" height="4" rx="2" fill="#b0b5b9"/></g></g>
+<g id="o-card"><rect x="-14" y="-20" width="28" height="40" rx="3" fill="#fbf7ee" stroke="#9a8f7a"/><path d="M0 8C-10 0-8-10 0-5C8-10 10 0 0 8z" fill="#b2302a"/><rect x="-10" y="-16" width="4" height="5" fill="#b2302a"/><rect x="6" y="11" width="4" height="5" fill="#b2302a"/></g>
+<g id="o-lant"><path d="M0-34v6" stroke="#3a3a3a" stroke-width="2"/><rect x="-12" y="-28" width="24" height="6" fill="#3a3f44"/><rect x="-10" y="-22" width="20" height="30" fill="#f2c46a" fill-opacity=".85" stroke="#3a3f44" stroke-width="3"/><path d="M0-22v30" stroke="#3a3f44" stroke-width="2"/><rect x="-14" y="8" width="28" height="6" fill="#3a3f44"/></g>
+<g id="o-glove" fill="#8a5a3a"><rect x="-12" y="-6" width="24" height="24" rx="6"/><rect x="-12" y="-24" width="5.5" height="22" rx="2.75"/><rect x="-5.5" y="-28" width="5.5" height="26" rx="2.75"/><rect x="1" y="-26" width="5.5" height="24" rx="2.75"/><rect x="7.5" y="-20" width="5" height="18" rx="2.5"/><rect x="-24" y="-2" width="15" height="6" rx="3" transform="rotate(-35 -12 2)"/><rect x="-12" y="14" width="24" height="6" fill="#6b4228"/></g>
+<g id="o-stamp"><rect x="-13" y="-16" width="26" height="32" fill="#f3ead2" stroke="#c9b68a" stroke-dasharray="2 2" stroke-width="2"/><rect x="-9" y="-12" width="18" height="24" fill="#b2302a"/><circle cy="-2" r="5" fill="#f3ead2" opacity=".8"/></g>
+<g id="o-dice"><rect x="-13" y="-13" width="26" height="26" rx="4" fill="#f3ead2" stroke="#9a8f7a"/><g fill="#2a1d1b"><circle cx="-6" cy="-6" r="2.4"/><circle r="2.4"/><circle cx="6" cy="6" r="2.4"/></g></g>
+<g id="o-book"><rect x="-22" y="-16" width="44" height="32" rx="2" fill="#6a3026"/><rect x="-20" y="12" width="40" height="3" fill="#efe4c8"/><rect x="-22" y="-16" width="6" height="32" fill="#3e1c17"/><path d="M-6-6h20" stroke="#c9a03a" stroke-width="2"/></g>
+</defs></svg>
+
+<section id="home" class="screen on" aria-label="Title">
+<svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+<rect width="1200" height="800" fill="url(#night)"/>
+<g id="stars"></g>
+<circle cx="660" cy="170" r="120" fill="url(#moonG)"/><circle cx="660" cy="170" r="42" fill="#f1e8d6"/><circle cx="676" cy="160" r="40" fill="#1a2f3e" opacity=".25"/>
+<rect y="540" width="1200" height="260" fill="#0b1620"/>
+<g stroke="#2c4a5c" stroke-width="3" fill="none" opacity=".8"><path d="M0 580q30-8 60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0"/><path d="M60 660q30-8 60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0"/></g>
+<path d="M660 540h20l-10 220z" fill="#f1e8d6" opacity=".08"/>
+<g transform="translate(250 538)"><path d="M-40 0h70l12-8h-90z" fill="#05090d"/><rect x="-14" y="-26" width="3" height="20" fill="#05090d"/><rect x="8" y="-34" width="3" height="28" fill="#05090d"/></g>
+<g transform="translate(470 650) rotate(-6)"><path d="M-44 0q44 22 88 0l-8-10h-72z" fill="#4a2c1c"/><path d="M-36-10h72" stroke="#7a4a2a" stroke-width="3"/><path d="M30-12l40-26" stroke="#7a4a2a" stroke-width="3"/></g>
+<path d="M760 800V560q60-40 150-70l60-20q80-10 140 0l90 10V800z" fill="#140e10"/>
+<path d="M760 560q60-40 150-70l60-20q80-10 140 0" fill="none" stroke="#2a2024" stroke-width="4"/>
+<rect x="1010" y="420" width="120" height="70" fill="#2a2024"/><path d="M1000 420l70-40l70 40z" fill="#1e171a"/><rect x="1040" y="440" width="22" height="26" fill="#3d2b20"/>
+<path d="M890 480l14-280h52l14 280z" fill="#e8e0d0"/><path d="M896 380l60 0l3 50h-66zM900 280h52l3 50h-58z" fill="#a8423a"/>
+<rect x="880" y="186" width="100" height="14" fill="#1b1b1e"/><path d="M880 186v-8h100v8" fill="none" stroke="#3a3f44" stroke-width="3"/>
+<rect x="896" y="128" width="68" height="50" fill="#16222c"/><path d="M913 128v50M930 128v50M947 128v50" stroke="#3a3f44" stroke-width="3"/>
+<path d="M888 128l42-34l42 34z" fill="#1b1b1e"/><circle cx="930" cy="88" r="5" fill="#1b1b1e"/>
+</svg>
+<div class="hometext">
+<h1>The Hartwell Telegrams</h1>
+<p class="sub">Chapters One and Two</p>
+<p class="lead">Port Ashby, Maine. August 1914. The night the Gull Point lighthouse went dark, assistant keeper Thomas Hartwell rowed out into the harbour and never came home. His twin sister Evelyn, the town's telegraph operator, doesn't believe the sea took him.</p>
+<div class="row"><button class="btn" id="go">Begin the case</button><button class="ghost" id="reset">Start over</button></div>
+</div>
+</section>
+
+<section id="board" class="screen" aria-label="Case board">
+<div class="bar"><h2>Case board</h2><button class="ghost" id="toHome">Title</button></div>
+<div class="boardbody">
+<div id="banner"></div>
+<div id="cards"></div>
+<h3 style="margin-top:30px">Evidence</h3>
+<div class="clues" id="clues"></div>
+</div>
+</section>
+
+<section id="play" class="screen" aria-label="Search">
+<div class="hud">
+<span class="scn" id="scn"></span>
+<span class="stat" id="tmS"><small class="t">Time left</small><span id="tm">0:00</span></span>
+<span class="stat sc"><small>Score</small><span id="sc">0</span></span>
+<button class="ghost" id="hint">Hint 3</button>
+<button class="ghost" id="zoomB" aria-pressed="false">Zoom</button>
+<button class="ghost" id="quit" aria-label="Leave scene">‹ Back</button>
+</div>
+<div id="stage"></div>
+<div class="tipbar" id="tipbar" hidden><span id="tip" aria-live="polite"></span><span id="more"></span></div>
+<div class="list" id="list"></div>
+</section>
+
+<div class="veil" id="talk"><div class="say" id="say"><div class="pt" id="pt"></div><div><p class="who" id="who"></p><p class="txt" id="txt"></p><button class="btn" id="next">Continue</button></div></div></div>
+<div class="veil" id="res"><div class="result" id="result"></div></div>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const NAMES={tele:'Carbon telegram',watch:'Pocket watch',key:'Brass key',mag:'Magnifying glass',candle:'Candlestick',cup:'Teacup',specs:'Spectacles',pen:'Fountain pen',shoe:'Horseshoe',comp:'Compass',sciss:'Scissors',bell:'Desk bell',wrench:'Wrench',bulb:'Light bulb',oil:'Oil can',anchor:'Anchor',hat:'Bowler hat',quill:'Quill',coin:'Gold coin',ink:'Inkwell',photo:'Photograph',locket:'Locket',match:'Matchbox',ticket:'Rail ticket',book:'Notebook',bottle:'Bottle',ring:'Ring',thim:'Thimble',lock:'Padlock',pipe:'Pipe',spoon:'Spoon',card:'Playing card',lant:'Lantern',glove:'Glove',stamp:'Postage stamp',dice:'Dice'};
+const MODES=[['w','Words'],['s','Silhouettes'],['n','Lamplight']];
+const PEOPLE={E:'Evelyn Hartwell',D:'Mrs. Della Finch',R:'Constable Amos Reid',N:''};
+
+const rnd=seed=>()=>(seed=seed*16807%2147483647)/2147483647;
+const loop=(n,f)=>Array.from({length:n},(_,i)=>f(i)).join('');
+const bgOffice=()=>`<rect width="1000" height="600" fill="#6b4636"/><rect width="1000" height="600" fill="url(#stripes)"/>
+<rect y="40" width="1000" height="8" fill="#3a2418"/>
+<rect x="40" y="60" width="280" height="240" fill="#4a2c1c"/>
+${loop(20,i=>{const c=i%5,r=i/5|0,x=46+c*55,y=66+r*58;return `<rect x="${x}" y="${y}" width="50" height="52" fill="#24150e"/>${(i*7)%3===0?'':`<rect x="${x+6}" y="${y+22+(i%2)*6}" width="38" height="${24-(i%2)*6}" fill="${i%4?'#e6d6b2':'#d8c08a'}"/>`}`})}
+<rect x="370" y="70" width="90" height="120" fill="#2a1a12"/><rect x="378" y="78" width="74" height="104" fill="#efe4c8"/>${loop(7,i=>`<rect x="386" y="${90+i*12}" width="${40+(i*13)%20}" height="3" fill="#8a7a5a"/>`)}
+<circle cx="520" cy="120" r="40" fill="#4a2c1c"/><circle cx="520" cy="120" r="32" fill="#f1e8d6"/><path d="M520 120V98M520 120l14 8" stroke="#2a1d1b" stroke-width="3" stroke-linecap="round"/>
+<rect x="700" y="60" width="240" height="240" fill="url(#dusk)"/><rect x="700" y="232" width="240" height="68" fill="#3d5a63"/>
+<path d="M740 232v-70M770 232v-50M880 232v-60" stroke="#1d2a2e" stroke-width="3"/><path d="M730 232h50l-6 8h-40zM860 232h40l-5 7h-32z" fill="#1d2a2e"/>
+<rect x="700" y="60" width="240" height="240" fill="none" stroke="#2a1a12" stroke-width="12"/><path d="M820 60v240M700 180h240" stroke="#2a1a12" stroke-width="6"/>
+<rect x="688" y="300" width="264" height="14" fill="#4a2c1c"/>
+<circle cx="612" cy="296" r="4" fill="#2a1a12"/><circle cx="740" cy="205" r="3" fill="#2a1a12"/>
+<rect y="330" width="1000" height="270" fill="#3a2418"/>
+<rect y="400" width="1000" height="18" fill="#8a5a32"/><rect y="418" width="1000" height="182" fill="#5a3620"/>
+${loop(7,i=>`<rect x="${24+i*142}" y="440" width="120" height="130" fill="none" stroke="#3e2414" stroke-width="5"/>`)}
+<g fill="#efe4c8"><rect x="190" y="388" width="60" height="12" transform="rotate(-3 220 394)"/><rect x="196" y="380" width="56" height="10" fill="#e3d3ac"/></g>
+<rect x="462" y="388" width="60" height="12" fill="#3a2418"/><path d="M470 388v-18h44v18" fill="none" stroke="#b8922f" stroke-width="4"/>
+<path d="M745 400l10-28h10l10 28z" fill="#2a1a12"/><path d="M730 372q30-26 60 0z" fill="#2f5a4a"/>
+<rect x="590" y="150" width="70" height="86" fill="#efe4c8"/><rect x="590" y="150" width="70" height="16" fill="#9b2b2b"/>${loop(12,i=>`<rect x="${596+(i%4)*16}" y="${172+(i/4|0)*20}" width="10" height="12" fill="none" stroke="#8a7a5a"/>`)}
+${[[30,'#5a2a22'],[44,'#2f4a55'],[58,'#7a5a26']].map(([x,c],i)=>`<rect x="${x-14}" y="${388-i*9}" width="56" height="9" fill="${c}"/>`).join('')}
+${(()=>{const r=rnd(7);return loop(9,i=>{const x=140+i*92+r()*30;return `<rect x="${x}" y="${388+r()*4}" width="${22+r()*16}" height="${8+r()*4}" fill="${r()>.5?'#efe4c8':'#e3d3ac'}" transform="rotate(${r()*16-8} ${x+15} 394)"/>`})})()}
+<rect x="596" y="372" width="34" height="28" fill="#3a2418"/><path d="M600 372v-10M608 372v-14M616 372v-8M624 372v-12" stroke="#efe4c8" stroke-width="5"/>
+<path d="M672 300v12M690 300v12" stroke="#2a1a12" stroke-width="4"/><path d="M676 312q10 40-4 80h28q-8-40 0-80z" fill="#3d5a63"/>`;
+
+const bgShop=()=>`<rect width="1000" height="600" fill="url(#bricks)"/>
+<rect x="760" y="60" width="180" height="200" fill="url(#day)"/><rect x="760" y="200" width="180" height="60" fill="#5d7a83"/>
+<rect x="760" y="60" width="180" height="200" fill="none" stroke="#3a2418" stroke-width="10"/><path d="M850 60v200" stroke="#3a2418" stroke-width="6"/>
+<rect x="750" y="260" width="200" height="12" fill="#4a2c1c"/>
+<rect x="380" y="60" width="300" height="220" fill="url(#peg)"/><rect x="380" y="60" width="300" height="220" fill="none" stroke="#6b4a2b" stroke-width="6"/>
+<g fill="#5b4636"><rect x="452" y="200" width="8" height="50"/><rect x="436" y="192" width="40" height="14" rx="3"/></g>
+<circle cx="610" cy="110" r="22" fill="none" stroke="#a3703a" stroke-width="7"/><circle cx="610" cy="110" r="12" fill="none" stroke="#a3703a" stroke-width="5"/>
+${[140,250].map(y=>`<rect x="40" y="${y}" width="280" height="10" fill="#4a2c1c"/><path d="M60 ${y+10}l14 18M300 ${y+10}l-14 18" stroke="#2a1a12" stroke-width="5"/>`).join('')}
+<rect x="52" y="104" width="26" height="36" rx="4" fill="#6f8f7a" opacity=".85"/><rect x="214" y="110" width="22" height="30" rx="4" fill="#a3703a" opacity=".85"/>
+<rect x="148" y="214" width="28" height="36" rx="4" fill="#a7c4c8" opacity=".7"/><rect x="270" y="218" width="30" height="32" fill="#5a3a2a"/>
+<rect y="540" width="1000" height="60" fill="#3a2a22"/>${loop(6,i=>`<path d="M${i*180} 540v60" stroke="#2a1d17" stroke-width="3"/>`)}
+<rect x="260" y="380" width="480" height="20" fill="#8a5a32"/><rect x="276" y="400" width="14" height="140" fill="#5a3620"/><rect x="710" y="400" width="14" height="140" fill="#5a3620"/>
+<rect x="300" y="440" width="120" height="100" fill="#7a5530"/><path d="M300 440l120 100M420 440l-120 100" stroke="#5a3a1e" stroke-width="5"/>
+<rect x="470" y="300" width="110" height="80" fill="#3a2418"/><rect x="478" y="308" width="94" height="40" fill="#1a1a1a"/>
+<circle cx="500" cy="328" r="11" fill="#c9a03a"/><circle cx="550" cy="328" r="11" fill="#c9a03a"/><path d="M500 328l6-6M550 328l-4-7" stroke="#2a1d1b" stroke-width="2"/>
+<path d="M480 300q-10-30 10-40h30" fill="none" stroke="#1a1a1a" stroke-width="4"/>
+<rect x="594" y="340" width="26" height="40" fill="#b8732f"/>${loop(6,i=>`<path d="M594 ${344+i*6}h26" stroke="#7a4a1e" stroke-width="2"/>`)}
+<path d="M820 540q-30-30 10-40q50-5 40 30q-10 20-50 10" fill="none" stroke="#a3703a" stroke-width="6"/>
+${(()=>{const r=rnd(11),cs=['#6f8f7a','#a3703a','#a7c4c8','#5a3a2a','#8a5a7a','#c9b27a'];return [[140,10],[250,6]].map(([y,n],k)=>loop(n,i=>{const h=18+r()*22,w=14+r()*12,x=k?110+i*18+r()*8:40+r()*270;return `<rect x="${x}" y="${y-h}" width="${w}" height="${h}" rx="3" fill="${cs[(r()*6)|0]}" opacity=".8"/>`})).join('')})()}
+<path d="M520 230h60l-8 10h-44z" fill="#6b6460"/><rect x="540" y="214" width="6" height="16" fill="#5b4636"/>
+<g stroke="#5b4636" stroke-width="6" stroke-linecap="round"><path d="M400 90l20 30M660 260l-20-34"/></g><path d="M640 80l20 30l-10 6l-20-30z" fill="#8a8f92"/>
+<rect x="420" y="380" width="40" height="3" fill="#efe4c8"/><g fill="#efe4c8">${loop(4,i=>`<rect x="${600+i*30}" y="${372+(i%2)*3}" width="24" height="8" transform="rotate(${i*9-12} ${612+i*30} 376)"/>`)}</g>
+<rect x="320" y="418" width="80" height="24" fill="#6b4a2b"/><rect x="330" y="408" width="20" height="12" fill="#a7c4c8"/>
+<g fill="#4a5a3a" opacity=".9"><rect x="70" y="510" width="16" height="30" rx="4"/><rect x="92" y="500" width="14" height="40" rx="4"/></g><rect x="200" y="520" width="60" height="20" fill="#5a3a2a"/>`;
+
+const bgLamp=()=>`<rect width="1000" height="360" fill="url(#night)"/>
+${(()=>{const r=rnd(9);return loop(45,()=>`<circle cx="${r()*1000}" cy="${r()*250}" r="${r()>.75?2:1.2}" fill="#f1e8d6" opacity=".8"/>`)})()}
+<circle cx="860" cy="90" r="22" fill="#f1e8d6"/>
+<rect y="262" width="1000" height="100" fill="#0b1a24"/>
+<g transform="translate(250 262)"><path d="M-70 0h130l16-10h-160z" fill="#04080b"/><rect x="-30" y="-50" width="4" height="42" fill="#04080b"/><rect x="10" y="-58" width="4" height="50" fill="#04080b"/></g>
+<g stroke="#1d3644" stroke-width="2" fill="none">${loop(4,i=>`<path d="M${i*60} ${290+i*14}q30-6 60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0t60 0"/>`)}</g>
+${loop(9,i=>`<rect x="${i*125-4}" y="0" width="8" height="360" fill="#1a1d21"/>`)}<rect y="36" width="1000" height="8" fill="#1a1d21"/><rect y="196" width="1000" height="6" fill="#1a1d21"/>
+<rect y="360" width="1000" height="240" fill="#2b2f33"/><rect y="350" width="1000" height="12" fill="#4a4f55"/>
+${loop(25,i=>`<circle cx="${20+i*40}" cy="380" r="3" fill="#4a4f55"/><circle cx="${20+i*40}" cy="586" r="3" fill="#4a4f55"/>`)}
+<rect x="400" y="70" width="200" height="275" fill="#7a5a26"/>
+${loop(8,i=>`<rect x="${410+Math.abs(3.5-i)*4}" y="${78+i*33}" width="${180-Math.abs(3.5-i)*8}" height="28" fill="url(#lens)" opacity=".85"/>`)}
+<circle cx="500" cy="205" r="42" fill="#cfe8ef" opacity=".55" stroke="#7a5a26" stroke-width="4"/>
+<rect x="455" y="345" width="90" height="85" fill="#3a3f44"/><rect x="430" y="430" width="140" height="18" fill="#4a4f55"/>
+<rect x="30" y="380" width="270" height="16" fill="#5a3620"/><rect x="42" y="396" width="12" height="160" fill="#3e2414"/><rect x="276" y="396" width="12" height="160" fill="#3e2414"/>
+<rect x="60" y="400" width="200" height="40" fill="#4a2c1c"/><circle cx="160" cy="420" r="4" fill="#c9a03a"/>
+<circle cx="360" cy="452" r="3" fill="#15181b"/><circle cx="870" cy="524" r="3" fill="#15181b"/>
+<rect x="330" y="440" width="96" height="76" fill="#c9b98f" transform="rotate(-3 378 478)"/><path d="M340 470q20-20 40 0t40-4M350 495q30-10 60 4" stroke="#5f7d86" stroke-width="2" fill="none"/>
+<g stroke="#6b6248" stroke-width="2" opacity=".8">${loop(9,i=>`<path d="M${600+i*18} 440l40 100M${640+i*18} 440l-40 100"/>`)}</g>
+${(()=>{const r=rnd(5);return loop(5,i=>`<rect x="${700+i*28}" y="${560-r()*40}" width="${30+r()*14}" height="60" fill="${i%2?'#5a3a22':'#4a2c1c'}" stroke="#2a1a12" stroke-width="3"/>`)})()}
+<path d="M960 400q-30 20-6 50q30 20 34-20q-4-30-28-30" fill="none" stroke="#a3703a" stroke-width="6"/>
+<path d="M880 500q-10 40 0 80h40q8-40-4-80z" fill="#2f3a44"/><path d="M886 500h28" stroke="#15181b" stroke-width="4"/>
+<path d="M470 520l12 60h36l12-60z" fill="#5a5f64"/><rect x="40" y="440" width="10" height="0"/>
+<g fill="#efe4c8" opacity=".85"><rect x="110" y="372" width="30" height="8" transform="rotate(-8 125 376)"/><rect x="200" y="374" width="26" height="7" transform="rotate(10 213 377)"/></g>`;
+
+const bgHotel=()=>`<rect width="1000" height="600" fill="url(#damask)"/><rect y="40" width="1000" height="8" fill="#3a2418"/>
+<rect y="380" width="1000" height="140" fill="#3a2418"/>${loop(7,i=>`<rect x="${250+i*110}" y="396" width="90" height="100" fill="none" stroke="#2a1910" stroke-width="4"/>`)}
+<rect x="300" y="80" width="200" height="220" fill="url(#night)"/><rect x="300" y="232" width="200" height="68" fill="#0b1a24"/>${loop(7,i=>`<circle cx="${318+i*27}" cy="${228+(i%2)*4}" r="2" fill="#f2c46a"/>`)}
+<rect x="300" y="80" width="200" height="220" fill="none" stroke="#3a2418" stroke-width="10"/><path d="M400 80v220M300 190h200" stroke="#3a2418" stroke-width="5"/>
+<rect x="282" y="66" width="236" height="14" fill="#7a5a26"/><path d="M286 80q20 120 0 240h34q-14-120 0-240z" fill="#6a2a2c"/><path d="M514 80q-20 120 0 240h-34q14-120 0-240z" fill="#6a2a2c"/>
+<rect x="290" y="300" width="220" height="10" fill="#4a2c1c"/>
+<rect x="30" y="92" width="200" height="428" fill="#4a2c1c"/><rect x="24" y="80" width="212" height="14" fill="#3a2418"/><rect x="42" y="108" width="84" height="330" fill="#55331f"/><rect x="134" y="108" width="84" height="330" fill="#55331f"/>
+<ellipse cx="84" cy="250" rx="30" ry="70" fill="#8fa9ad"/><path d="M68 210q10-20 24-14" stroke="#d6eef3" stroke-width="3" fill="none"/><circle cx="140" cy="300" r="4" fill="#c9a03a"/><rect x="42" y="452" width="176" height="56" fill="#55331f"/>
+<rect y="520" width="1000" height="80" fill="#4a2f1e"/><rect x="250" y="530" width="660" height="70" fill="#7a2a2a" stroke="#c9a03a" stroke-width="3"/>
+<circle cx="620" cy="350" r="170" fill="url(#warm)"/>
+<rect x="300" y="380" width="260" height="12" fill="#6b4022"/><rect x="310" y="392" width="12" height="130" fill="#4a2c1c"/><rect x="538" y="392" width="12" height="130" fill="#4a2c1c"/><rect x="330" y="392" width="200" height="34" fill="#55331f"/><circle cx="430" cy="409" r="3" fill="#c9a03a"/>
+<g fill="#efe4c8"><rect x="372" y="374" width="44" height="6" transform="rotate(-4 394 377)"/><rect x="440" y="375" width="36" height="5" transform="rotate(6 458 377)"/></g>
+<rect x="570" y="380" width="70" height="10" fill="#6b4022"/><rect x="600" y="390" width="10" height="130" fill="#4a2c1c"/><rect x="580" y="512" width="50" height="8" fill="#4a2c1c"/>
+<rect x="656" y="250" width="10" height="270" fill="#c9a03a"/><rect x="984" y="250" width="10" height="270" fill="#c9a03a"/><circle cx="661" cy="246" r="8" fill="#c9a03a"/><circle cx="989" cy="246" r="8" fill="#c9a03a"/><rect x="660" y="258" width="330" height="6" fill="#c9a03a"/>${loop(10,i=>`<rect x="${690+i*30}" y="264" width="4" height="90" fill="#b8922f"/>`)}
+<rect x="666" y="350" width="318" height="40" fill="#efe8da"/><ellipse cx="722" cy="350" rx="44" ry="16" fill="#f7f2e8"/><ellipse cx="812" cy="350" rx="44" ry="16" fill="#f7f2e8"/>
+<rect x="666" y="380" width="318" height="120" fill="#7a2a3a"/><path d="M666 392h318" stroke="#f1e8d6" stroke-width="6"/><path d="M700 400l20 90M860 400l-10 90" stroke="#5a1f2a" stroke-width="3"/>
+<rect x="760" y="120" width="120" height="80" fill="#c9a03a"/><rect x="768" y="128" width="104" height="64" fill="#7f9aa3"/><path d="M768 172l30-20l26 16l20-10l28 14v20h-104z" fill="#3d5a63"/>
+<rect x="250" y="470" width="150" height="100" rx="6" fill="#5a3a22"/><rect x="250" y="470" width="150" height="22" rx="6" fill="#4a2c1c"/><path d="M285 470v100M365 470v100" stroke="#2a1a12" stroke-width="8"/><g fill="#c9a03a"><rect x="250" y="470" width="12" height="12"/><rect x="388" y="470" width="12" height="12"/><rect x="250" y="558" width="12" height="12"/><rect x="388" y="558" width="12" height="12"/></g>`;
+
+const crate=(x,y,w,h,label)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#8a6a3e" stroke="#5a4022" stroke-width="4"/><path d="M${x} ${y}l${w} ${h}M${x+w} ${y}l${-w} ${h}" stroke="#6b5030" stroke-width="5"/>${label?`<text x="${x+w/2}" y="${y+h/2+5}" text-anchor="middle" font-family="Special Elite,monospace" font-size="15" fill="#2a1d12" opacity=".75">${label}</text>`:''}`;
+const bgWare=()=>`<rect width="1000" height="600" fill="url(#vplank)"/>
+<rect x="560" y="80" width="160" height="390" fill="url(#night)"/><rect x="560" y="300" width="160" height="170" fill="#0b1a24"/><circle cx="690" cy="130" r="12" fill="#f1e8d6"/>
+<g transform="translate(640 300)"><path d="M-50 0h90l10-8h-110z" fill="#04080b"/><rect x="-20" y="-44" width="3" height="38" fill="#04080b"/><rect x="10" y="-50" width="3" height="44" fill="#04080b"/></g>
+<rect x="553" y="80" width="174" height="390" fill="none" stroke="#2a1d16" stroke-width="14"/><rect x="727" y="90" width="22" height="380" fill="#5a4636"/>
+<rect y="20" width="1000" height="30" fill="#2a1d16"/><path d="M0 50l120 60M1000 50l-120 60" stroke="#2a1d16" stroke-width="14"/>
+<g stroke="#a3906a" stroke-width="1.5" fill="none" opacity=".7">${loop(8,i=>`<path d="M${384+i*16} 50q10 80-6 160M380 ${70+i*18}h124"/>`)}</g>
+<path d="M300 50v80" stroke="#1a1a1a" stroke-width="2"/><circle cx="300" cy="150" r="130" fill="url(#warm)"/><rect x="290" y="130" width="20" height="26" fill="#f2c46a" stroke="#2a2a2a" stroke-width="3"/>
+<rect y="470" width="1000" height="130" fill="#4a3a2c"/>${loop(4,i=>`<path d="M0 ${500+i*30}h1000" stroke="#3a2c20" stroke-width="2"/>`)}
+${crate(30,380,120,90,'FARM MACH.')}${crate(150,380,120,90,'')}${crate(270,410,80,60,'')}${crate(60,290,120,90,'FRAGILE')}${crate(180,300,100,80,'')}${crate(90,200,110,90,'N.Y.')}
+${[400,485].map(x=>`<path d="M${x-38} 360q-8 55 0 110h76q8-55 0-110z" fill="#7a5530"/><ellipse cx="${x}" cy="360" rx="38" ry="9" fill="#5a3a1e"/><path d="M${x-42} 385h84M${x-42} 445h84" stroke="#3a3f44" stroke-width="5"/>`).join('')}
+<path d="M760 320h220v16h-220z" fill="#6b4022"/><rect x="770" y="336" width="200" height="40" fill="#55331f"/><rect x="772" y="376" width="10" height="94" fill="#4a2c1c"/><rect x="958" y="376" width="10" height="94" fill="#4a2c1c"/><circle cx="960" cy="226" r="3" fill="#1a1a1a"/>
+<ellipse cx="660" cy="540" rx="40" ry="12" fill="none" stroke="#a3703a" stroke-width="6"/><ellipse cx="660" cy="536" rx="26" ry="8" fill="none" stroke="#a3703a" stroke-width="5"/>`;
+
+const bgCabin=()=>`<rect width="1000" height="600" fill="url(#hplank)"/><rect width="1000" height="34" fill="#2a1d14"/>${[0,330,670,1000].map(x=>`<rect x="${x-10}" y="0" width="20" height="540" fill="#2e1f14"/>`).join('')}
+<circle cx="500" cy="110" r="320" fill="url(#warm)"/>
+${[250,750].map(x=>`<circle cx="${x}" cy="170" r="55" fill="url(#night)"/><path d="M${x-53} 186A55 55 0 0 0 ${x+53} 186Z" fill="#0b1a24"/><circle cx="${x}" cy="170" r="55" fill="none" stroke="#b8922f" stroke-width="12"/>${loop(8,i=>`<circle cx="${x+Math.cos(i*.785)*55}" cy="${170+Math.sin(i*.785)*55}" r="3" fill="#6b5420"/>`)}`).join('')}
+<path d="M500 34v46" stroke="#1a1a1a" stroke-width="3"/><rect x="480" y="76" width="40" height="6" fill="#3a3f44"/><path d="M484 82h32l-4 30h-24z" fill="#f2c46a" stroke="#3a3f44" stroke-width="3"/>
+<path d="M610 200q-20 60-10 140h50q10-80-10-140z" fill="#2f3a44"/><circle cx="625" cy="196" r="4" fill="#1a1a1a"/>
+<rect x="40" y="300" width="200" height="10" fill="#4a2c1c"/>${loop(5,i=>`<rect x="${110+i*9}" y="${270+(i%2)*6}" width="8" height="${30-(i%2)*6}" fill="${['#5a2a22','#2f4a55','#7a5a26','#3a2418','#4a5a3a'][i]}"/>`)}<path d="M40 286h200" stroke="#b8922f" stroke-width="3"/><path d="M60 310l14 18M220 310l-14 18" stroke="#2a1a12" stroke-width="5"/>
+<path d="M300 340h400l-10 32h-380z" fill="#6b4022"/><path d="M330 342h340l-6 18h-328z" fill="#e8dcbc"/><path d="M360 352q60-10 120 0t140-4" stroke="#5f7d86" stroke-width="2" fill="none"/><rect x="316" y="372" width="14" height="168" fill="#4a2c1c"/><rect x="670" y="372" width="14" height="168" fill="#4a2c1c"/>
+<rect x="760" y="380" width="240" height="100" fill="#4a2c1c"/><rect x="766" y="362" width="234" height="22" fill="#c9bfa8"/><rect x="766" y="372" width="234" height="40" fill="#3f5a6a"/>${loop(4,i=>`<path d="M${790+i*55} 372v40" stroke="#c9bfa8" stroke-width="4"/>`)}<path d="M760 446h240" stroke="#2a1a12" stroke-width="3"/><rect x="984" y="250" width="12" height="290" fill="#3a2418"/>
+<rect x="30" y="430" width="200" height="110" rx="4" fill="#5a3a22"/><path d="M30 432q100-40 200 0z" fill="#4a2c1c"/><path d="M70 414v126M190 414v126" stroke="#b8922f" stroke-width="6"/>
+<rect y="540" width="1000" height="60" fill="#2a1d14"/>`;
+
+// [object, x, y, scale, rotation, optional name]
+const SCENES=[
+{id:'s1',name:'Telegraph Office',bg:bgOffice,clue:0,
+ place:[['tele',300,384,.6,8],['watch',126,150,.75,0],['key',612,318,.75,-70],['mag',830,370,.9,30],['specs',415,390,.8,-6],['pen',350,384,.8,0],['cup',560,380,.85,0],['coin',880,290,.85,0],['bell',650,381,.85,0],['ink',705,383,.8,0],['hat',940,384,.95,-6],['shoe',640,78,.8,180],['quill',291,206,.75,0],['match',181,276,.7,0],['locket',740,236,.7,0],['ticket',100,388,.75,-10],['thim',71,98,.6,0],['ring',236,154,.5,0],['stamp',181,98,.55,0],['card',480,250,.55,-8],['pipe',760,293,.55,0],['glove',885,386,.55,10],['lock',335,250,.6,0],['spoon',590,372,.5,20],['lant',925,290,.55,0]],
+ intro:[['D','Evelyn, dear. You shouldn\'t be at work.'],['E','Where else would I hear anything, Mrs. Finch? Every message in Port Ashby passes through this counter.'],['D','Then you\'ll want to know about the gentleman from New York. He sent a wire the night the light failed and paid in gold. I kept the carbon, but this office is a magpie\'s nest.'],['N','Search the office for the carbon telegram.']],
+ clueCard:['Carbon copy · Aug. 6, 1914 · 11:48 p.m.','TO ATLANTIC IMPORT CO NEW YORK. CARGO LANDS WHEN LIGHT FAILS STOP KEEPERS HELPER ASKING QUESTIONS STOP WILL SEE TO IT STOP. L. VANCE'],
+ outro:[['E','"Will see to it." He wrote that an hour before the light went out.'],['D','Mr. Vance is staying at the Harbour House. He tips well and smiles too much.'],['E','Thomas was asking questions. I need to know which ones. His workshop first.']]},
+{id:'s2',name:'Thomas\'s Workshop',bg:bgShop,clue:0,
+ place:[['book',330,368,.8,-6],['wrench',450,120,.9,0],['sciss',560,170,.8,0],['key',640,236,.75,40],['bulb',120,124,.8,0],['cup',180,126,.7,0],['photo',262,124,.7,0],['candle',92,228,.8,0],['oil',230,234,.8,0],['specs',420,372,.7,10],['mag',650,360,.8,20],['match',705,372,.65,10],['watch',372,416,.7,0],['comp',820,246,.7,0],['anchor',900,500,.95,8],['coin',150,556,.85,0],['ring',395,376,.5,0],['thim',128,240,.6,0],['lock',520,250,.65,0],['pipe',900,252,.55,0],['spoon',305,124,.5,-60],['lant',640,528,.7,0],['bottle',40,522,.7,0],['card',410,250,.55,0],['glove',360,482,.6,0],['dice',280,562,.5,15]],
+ intro:[['N','The workshop above the Hartwell boathouse. Thomas built his wireless set here from catalogue parts and stubbornness.'],['E','He would sit up all night with the headphones on, listening to ships nobody else could hear. He wrote everything down.'],['N','Find Thomas\'s notebook.']],
+ clueCard:['Thomas\'s notebook · Aug. 3','Strange signal again near 2 a.m., no call sign. Same three letters, over and over: G. P. L. Gull Point Light?? Someone is talking to the light. Must tell Evvie after I check the lamp room.'],
+ outro:[['E','Evvie. He hasn\'t called me that since we were children.'],['E','Someone was signalling the lighthouse at night, and Thomas went to find out who.'],['R','Miss Hartwell. I hear you\'ve been asking about the Gull Point light.'],['E','Then you\'ll take me up there, Constable. Tonight.']]},
+{id:'s3',name:'Gull Point Lamp Room',bg:bgLamp,clue:0,
+ place:[['book',170,366,.85,4,'Keeper\'s logbook'],['candle',80,358,.8,0],['specs',236,374,.55,0],['match',282,372,.6,-12],['comp',340,338,.7,0],['mag',720,338,.8,-20],['hat',900,337,.9,0],['locket',612,250,.7,0],['coin',505,438,.7,0],['key',360,470,.75,-60],['ticket',640,470,.8,8],['anchor',940,470,.9,10],['wrench',780,520,.8,0],['oil',830,425,.85,0],['watch',870,550,.65,0],['quill',150,470,.8,0],['lant',645,342,.7,0],['bottle',200,532,.65,0],['pipe',230,425,.55,0],['ring',400,500,.45,0],['glove',800,338,.6,0],['thim',745,512,.5,0],['card',540,500,.55,0],['spoon',100,520,.5,0],['lock',975,560,.6,0]],
+ intro:[['R','Keeper Morrow says the lamp failed on its own. Bad wick. It happens.'],['E','Then why is the oil can still full? And where is the night log?'],['R','Look all you like, Miss Hartwell. I\'ll hold the lantern.'],['N','Find the keeper\'s logbook.']],
+ clueCard:['Keeper\'s log · page for Aug. 6 torn out','Pencil rubbed over the next sheet shows the pressed-in words: 2:10 A.M. VESSEL SHOWING NO LIGHTS OFF THE POINT. T.H. TAKING THE DORY OUT TO'],
+ outro:[['E','A ship with no lights, and a lamp put out on purpose so no one would see it come in.'],['R','That\'s a mighty big claim to make about Keeper Morrow.'],['E','I\'m not claiming anything yet, Constable. But Thomas rowed out to that ship, and somebody made sure the light was dark.'],['N','End of Chapter One. Chapter Two, The Ship Without Lights, is now open on the case board.']]},
+{id:'s4',name:'Harbour House, Room 7',bg:bgHotel,clue:0,
+ place:[['book',700,345,.7,-8,'Cipher book'],['ink',330,367,.7,0],['pen',362,370,.7,0],['tele',410,366,.55,6,'Telegram form'],['stamp',452,370,.55,0],['specs',492,372,.6,0],['bell',530,366,.7,0],['pipe',345,293,.6,0],['match',420,296,.5,0],['bottle',470,285,.62,0],['hat',130,76,.85,0],['locket',185,190,.6,0],['key',175,320,.6,90],['glove',450,565,.6,-20],['dice',610,565,.5,12],['coin',520,585,.55,0],['watch',596,369,.5,0],['candle',625,360,.55,0],['ring',820,425,.5,0],['card',905,430,.55,15],['photo',718,165,.6,0],['lock',325,512,.55,0],['shoe',262,62,.5,180],['lant',960,548,.65,0],['sciss',760,560,.55,30]],
+ intro:[['N','The Harbour House hotel. Mr. Lucien Vance has gone down to dinner, and the night clerk owes Evelyn a favour.'],['E','Ten minutes, he said. A man who pays in gold and wires in riddles keeps his secrets on paper.'],['R','Miss Hartwell, I did not see you go up those stairs. I am standing right here, not seeing it.'],['N','Search Room 7 for Vance\'s cipher book.']],
+ clueCard:['Cipher book · Room 7, Harbour House','A key in Vance\'s hand. LIGHT = the Gull Point lamp. CARGO = 40 crates, "farm machinery". HELPER = T.H. Below it, a schedule: Aug. 6, 2 a.m., schooner MERCY lands at the customs wharf, warehouse 3.'],
+ outro:[['E','Forty crates of farm machinery, landed in the dark. Nobody hides ploughs.'],['R','Warehouse 3 belongs to the customs house. The night watchman is Jack Morrow.'],['E','Morrow. Like the lighthouse keeper?'],['R','His brother.']]},
+{id:'s5',name:'Customs Warehouse 3',bg:bgWare,clue:0,
+ place:[['tele',860,312,.6,-5,'Shipping manifest'],['book',800,312,.55,0,'Ledger'],['ink',925,312,.5,0],['pen',955,316,.5,0],['lant',400,340,.65,0],['anchor',540,440,.85,6],['oil',485,342,.65,0],['key',120,250,.6,0],['lock',230,335,.6,0],['coin',60,578,.55,0],['dice',300,562,.5,20],['watch',600,452,.5,0],['hat',145,186,.75,0],['match',250,372,.5,0],['cup',830,555,.55,0],['bottle',230,286,.6,0],['wrench',330,525,.65,0],['shoe',640,66,.55,180],['comp',740,562,.5,0],['ticket',900,400,.5,-6],['glove',440,525,.55,15],['spoon',790,566,.45,0],['specs',40,300,.5,0],['mag',960,248,.55,0],['sciss',562,250,.5,90],['ring',380,500,.45,0],['thim',310,402,.45,0]],
+ intro:[['N','Warehouse 3, on the customs wharf. Rain drums on the tin roof.'],['R','Jack Morrow has gone home sick, conveniently. The door was unlocked, also conveniently.'],['E','Then someone wants us to find nothing here. Let\'s disappoint them.'],['N','Find the shipping manifest.']],
+ clueCard:['Shipping manifest · schooner MERCY','40 crates, "agricultural equipment", for Atlantic Import Co. Stamped CLEARED by the customs house, but unsigned. Pencilled in the margin in Thomas\'s hand: NOT PLOUGHS. WIRELESS SETS AND RIFLES. SHIP STILL OFF THE POINT.'],
+ outro:[['E','Thomas was here. He saw the crates and wrote it down where only someone looking would find it.'],['R','Rifles and wireless sets, in a country that is meant to be neutral. That is a federal matter, Miss Hartwell.'],['E','The ship is still off the point, Constable. By the time the federal men arrive, it won\'t be.'],['N','At dawn a fisherman rows them out to the schooner MERCY. Her crew is ashore.']]},
+{id:'s6',name:'Captain\'s Cabin, MERCY',bg:bgCabin,clue:0,
+ place:[['watch',880,446,.5,0,"Thomas's watch"],['comp',420,336,.55,0],['mag',520,334,.6,-20],['pen',600,340,.5,0],['ink',650,333,.5,0],['candle',345,325,.55,0],['spoon',385,343,.45,0],['match',470,342,.45,10],['pipe',690,340,.45,0],['book',90,290,.55,0],['bottle',150,288,.55,0],['ring',205,295,.4,0],['anchor',470,230,.65,0],['key',80,425,.55,-10],['coin',180,425,.45,0],['lock',130,490,.55,0],['locket',540,112,.5,0],['hat',990,240,.55,0],['dice',560,565,.45,25],['glove',300,565,.55,-10],['sciss',240,575,.45,0],['thim',860,565,.45,0],['lant',400,555,.6,0],['quill',720,250,.55,0],['card',800,368,.5,-12],['specs',620,566,.45,0],['tele',900,572,.5,10,'Torn letter'],['stamp',560,346,.4,0],['photo',870,250,.55,0],['shoe',330,60,.5,180]],
+ intro:[['N','The schooner MERCY, riding at anchor beyond Gull Point. Not one lamp is lit aboard.'],['R','We have until the tide turns. Then her crew comes back.'],['E','If Thomas was on this ship, he left something. He always leaves something.'],['N','Find the pocket watch.']],
+ clueCard:['Pocket watch · engraved T.H. 1913','Thomas\'s watch, tucked under the bunk mattress. Scratched inside the case with a pin: ALIVE. TAKEN TO MONHEGAN. DO NOT TRUST CUSTOMS. T.'],
+ outro:[['E','Alive. He\'s alive.'],['R','Monhegan Island. Twelve miles out, and the customs house runs every boat that goes there.'],['E','Then we don\'t take a customs boat.'],['N','End of Chapter Two. Coming next: Chapter Three, Monhegan.']]}
+];
+const PROLOGUE=[['N','Port Ashby, Maine. August 1914. Across the ocean, Europe has gone to war. Here the harbour sleeps, until the night the Gull Point light goes dark.'],['N','By morning, assistant keeper Thomas Hartwell is gone. His dory is found drifting, empty.'],['E','The constable says the sea took my brother. Thomas has rowed this harbour since he was nine. I don\'t believe it.']];
+
+const fresh=()=>({prologue:false,done:[],best:{}});
+let S=fresh();
+const save=()=>{try{localStorage.setItem('hartwell1',JSON.stringify(S))}catch(e){}};
+window.claude?.hot?.snapshot?.(()=>S);
+
+// portraits
+const portrait=w=>{
+ const c={E:['#5a7f78','#3a2a3a','#3b2418'],D:['#7a5a6a','#2e2630','#b9b2a8'],R:['#4a5a68','#2b3340','#4a3424']}[w];
+ if(!c)return'';
+ let hair=w==='E'?`<ellipse cx="50" cy="22" rx="20" ry="10" fill="${c[2]}"/><path d="M33 44c-2-18 8-28 17-28s19 10 17 28c-3-10-9-14-17-14s-14 4-17 14z" fill="${c[2]}"/>`
+ :w==='D'?`<ellipse cx="50" cy="18" rx="9" ry="7" fill="${c[2]}"/><path d="M34 42c-1-16 7-24 16-24s17 8 16 24c-3-9-9-12-16-12s-13 3-16 12z" fill="${c[2]}"/>`
+ :`<path d="M32 33h36v-9c0-8-36-8-36 0z" fill="#1d2128"/><rect x="28" y="31" width="44" height="5" fill="#111"/><circle cx="50" cy="27" r="3" fill="#c9a03a"/>`;
+ let extra=w==='E'?`<path d="M41 64h18v12h-18z" fill="#f4efe6"/>`
+ :w==='D'?`<g fill="none" stroke="#2a1d1b" stroke-width="1.5"><circle cx="44" cy="44" r="4.5"/><circle cx="56" cy="44" r="4.5"/></g><circle cx="50" cy="78" r="4" fill="#e9d9c0" stroke="#c9a03a" stroke-width="1.5"/>`
+ :`<path d="M42 51q8-5 16 0q-8 3-16 0z" fill="#4a3424"/><circle cx="50" cy="82" r="2" fill="#c9a03a"/><circle cx="50" cy="92" r="2" fill="#c9a03a"/>`;
+ return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="${c[0]}"/><path d="M10 100c4-24 20-30 40-30s36 6 40 30z" fill="${c[1]}"/><rect x="43" y="56" width="14" height="14" fill="#e2bd98"/><ellipse cx="50" cy="44" rx="15" ry="18" fill="#e9c6a2"/>${hair}<circle cx="44" cy="44" r="1.6" fill="#2a1d1b"/><circle cx="56" cy="44" r="1.6" fill="#2a1d1b"/><path d="M46 54q4 2 8 0" stroke="#8a4a3a" stroke-width="1.5" fill="none"/>${extra}</svg>`;
+};
+
+// dialogue
+let lines=[],li=0,after=null;
+const show=()=>{const [w,t]=lines[li];$('say').classList.toggle('nar',w==='N');$('pt').innerHTML=portrait(w);$('who').textContent=PEOPLE[w];$('txt').textContent=t;$('next').textContent=li===lines.length-1?'Close':'Continue';};
+const talk=(ls,done)=>{lines=ls;li=0;after=done;show();$('talk').classList.add('on');$('next').focus();};
+$('next').onclick=()=>{li++;if(li<lines.length)show();else{$('talk').classList.remove('on');const f=after;after=null;f&&f();}};
+
+const screen=id=>{for(const s of document.querySelectorAll('.screen'))s.classList.toggle('on',s.id===id);};
+const stars=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+
+// board
+const CHAPTERS=[['Chapter One: The Dark Light',[0,1,2]],['Chapter Two: The Ship Without Lights',[3,4,5]]];
+const DIFF=[{n:8,t:150,h:3,r:150},{n:9,t:150,h:3,r:140},{n:10,t:150,h:2,r:130},{n:11,t:150,h:2,r:125},{n:12,t:150,h:2,r:115},{n:12,t:140,h:1,r:110}];
+const SLOTS=8;
+const fmt=x=>{x=Math.max(0,Math.ceil(x));return `${x/60|0}:${String(x%60).padStart(2,'0')}`;};
+const cardHTML=(sc,i)=>{
+ const open=i===0||S.done.includes(SCENES[i-1].id),done=S.done.includes(sc.id),b=S.best[sc.id]||{},d=DIFF[i];
+ return `<article class="card ${open?'':'locked'}"><svg viewBox="0 0 1000 600" aria-hidden="true">${sc.bg()}</svg>
+ <h4>${sc.name}</h4><p class="note">${!open?'Locked. Solve the previous location first.':done?'Solved. Replay in any mode for stars.':'New lead. Search in Words mode to advance the story.'}<span class="diff">Find ${d.n} items · ${fmt(d.t)} · ${d.h} hint${d.h>1?'s':''}</span></p>
+ <div class="modes">${MODES.map(([m,label])=>`<button class="mode" data-s="${i}" data-m="${m}" ${open&&(m==='w'||done)?'':'disabled'}><span>${label}</span><span class="st">${stars(b[m]||0)}</span></button>`).join('')}</div></article>`;
+};
+const renderBoard=()=>{
+ $('cards').innerHTML=CHAPTERS.map(([t,ids])=>`<h3 class="chap">${t}</h3><div class="cards">${ids.map(i=>cardHTML(SCENES[i],i)).join('')}</div>`).join('');
+ const cl=SCENES.filter(sc=>S.done.includes(sc.id));
+ $('clues').innerHTML=cl.length?cl.map(sc=>`<div class="wire"><b>${sc.clueCard[0]}</b>${sc.clueCard[1]}</div>`).join(''):'<p class="empty">No evidence yet. Start at the telegraph office.</p>';
+ const n=S.done.length;
+ $('banner').innerHTML=n===SCENES.length?'<div class="banner">Chapters One and Two solved. Chapter Three, Monhegan, is coming. Replay scenes in Silhouettes or Lamplight to fill your stars.</div>':n>=3?'<div class="banner">Chapter Two is open. From here the searches get harder: more items, less time, fewer hints.</div>':'';
+ for(const b of document.querySelectorAll('.mode:not(:disabled)'))b.onclick=()=>{const i=+b.dataset.s,sc=SCENES[i];S.done.includes(sc.id)?play(i,b.dataset.m):talk(sc.intro,()=>play(i,b.dataset.m));};
+};
+const toBoard=()=>{renderBoard();screen('board');};
+
+// play
+let G=null,tick=null;
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const nameOf=(sc,i)=>sc.place[i][5]||NAMES[sc.place[i][0]];
+const chipHTML=(sc,i)=>`<div class="chip" id="c${i}" aria-label="${nameOf(sc,i)}"><svg viewBox="-32 -36 64 64" aria-hidden="true"><use href="#o-${sc.place[i][0]}"/></svg><span class="nm">${nameOf(sc,i)}</span></div>`;
+const coarse=()=>matchMedia('(pointer:coarse)').matches;
+const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+const bar=()=>{$('tipbar').hidden=!$('tip').textContent&&!$('more').textContent;};
+const more=()=>{const n=G.queue.length;$('more').textContent=n?`${n} more to find`:'';bar();};
+const say=t=>{$('tip').textContent=t;bar();};
+const play=(si,mode)=>{
+ const sc=SCENES[si],d=DIFF[si];
+ const t=shuffle([sc.clue,...shuffle(sc.place.map((_,i)=>i).filter(i=>i!==sc.clue)).slice(0,d.n-1)]);
+ const ci=t.indexOf(sc.clue);if(ci>=SLOTS){const j=Math.random()*SLOTS|0;[t[ci],t[j]]=[t[j],t[ci]];}
+ G={si,mode,d,targets:t,queue:t.slice(SLOTS),found:new Set(),score:0,misses:0,combo:0,last:0,hints:d.h,t0:Date.now(),pen:0,on:true,missT:[],lock:0};
+ $('scn').textContent=sc.name+' · '+MODES.find(m=>m[0]===mode)[1];
+ const night=mode==='n';
+ $('stage').innerHTML=`<svg viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${sc.name} scene">
+ ${sc.bg()}
+ ${sc.place.map((p,i)=>`<g class="obj" data-i="${i}" transform="translate(${p[1]} ${p[2]}) rotate(${p[4]}) scale(${p[3]})"${si>=3?' opacity=".88"':''}><g class="o"><circle r="34" fill="transparent"/><use href="#o-${p[0]}"/></g></g>`).join('')}
+ ${night?`<mask id="lampM"><rect width="1000" height="600" fill="#fff"/><circle id="lamp" cx="500" cy="300" r="${d.r}" fill="url(#lampG)"/></mask><rect width="1000" height="600" fill="#05060a" opacity=".95" mask="url(#lampM)" pointer-events="none"/>`:''}
+ <g id="fxl" pointer-events="none"></g></svg>`;
+ const st=$('stage');st.classList.remove('zoom','locked');$('zoomB').setAttribute('aria-pressed','false');$('zoomB').textContent='Zoom';
+ $('list').classList.toggle('sil',mode==='s');
+ $('list').innerHTML=t.slice(0,SLOTS).map(i=>chipHTML(sc,i)).join('');
+ $('hint').textContent=`Hint ${d.h}`;
+ const svg=st.firstElementChild;
+ svg.addEventListener('click',onClick);
+ if(night)svg.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const p=pt(svg,e),l=$('lamp');if(l){l.setAttribute('cx',p.x);l.setAttribute('cy',p.y);}});
+ screen('play');
+ st.scrollLeft=0;st.scrollTop=0;
+ if(night){const r=st.getBoundingClientRect(),c=pt(svg,{clientX:r.left+r.width/2,clientY:r.top+r.height/2}),l=$('lamp');l.setAttribute('cx',c.x);l.setAttribute('cy',c.y);}
+ const wide=st.scrollWidth>st.clientWidth+4;
+ say(night?(coarse()?'Tap to move the lamp, then tap inside the light.':'Your lamp follows the pointer. Click inside the light.'):wide?'Swipe the scene sideways to look around.':'');
+ if(wide&&!night)st.addEventListener('scroll',()=>{if($('tip').textContent.startsWith('Swipe'))say('');},{once:true});
+ more();
+ clearInterval(tick);tick=setInterval(hud,250);hud();
+};
+const pt=(svg,e)=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
+const left=()=>Math.max(0,G.d.t-(Date.now()-G.t0)/1000-G.pen);
+const hud=()=>{if(!G)return;const l=left();$('tm').textContent=fmt(l);$('tmS').classList.toggle('low',l<=20);$('sc').textContent=G.score.toLocaleString();if(l<=0&&G.on)timeUp();};
+const fx=(x,y,text,col)=>{const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('text-anchor','middle');t.setAttribute('class','fx');t.setAttribute('fill',col);t.textContent=text;$('fxl').appendChild(t);setTimeout(()=>t.remove(),1000);};
+const onClick=e=>{
+ if(!G||!G.on||Date.now()<G.lock)return;
+ const svg=e.currentTarget,p=pt(svg,e),l=$('lamp'),k=svg.getScreenCTM().a;
+ if(l){const lx=+l.getAttribute('cx'),ly=+l.getAttribute('cy');
+  if(Math.hypot(p.x-lx,p.y-ly)>G.d.r*.68){l.setAttribute('cx',p.x);l.setAttribute('cy',p.y);return;}}
+ // nearest object within a finger-sized margin wins
+ const slop=(coarse()?22:8)/k,place=SCENES[G.si].place;
+ let i=-1,bd=Infinity;
+ place.forEach((q,j)=>{if(G.found.has(j))return;const d=Math.hypot(q[1]-p.x,q[2]-p.y)-24*q[3];if(d<slop&&d<bd){bd=d;i=j;}});
+ const chip=i<0?null:$('c'+i);
+ const g=chip&&!chip.classList.contains('done')?$('stage').querySelector(`.obj[data-i="${i}"]`):null;
+ if(g){
+  buzz(15);
+  const now=Date.now();G.combo=now-G.last<5000&&G.last?Math.min(G.combo+1,5):0;G.last=now;
+  const pts=600+G.combo*150;G.score+=pts;G.found.add(i);G.missT=[];
+  g.classList.add('got');setTimeout(()=>g.remove(),600);
+  fx(place[i][1],place[i][2]-20,G.combo?`+${pts} combo`:`+${pts}`,'#f1dc8f');
+  chip.classList.add('done','pop');
+  if(G.queue.length){const n=G.queue.shift(),gs=G;setTimeout(()=>{if(G!==gs||!chip.isConnected)return;chip.outerHTML=chipHTML(SCENES[G.si],n);$('c'+n).classList.add('pop');},550);}
+  more();hud();
+  if(G.found.size===G.targets.length){G.on=false;setTimeout(finish,700);}
+ }else{
+  const now=Date.now();
+  G.misses++;G.score=Math.max(0,G.score-150);G.pen+=5;G.combo=0;fx(p.x,p.y,'✕ −5s','#e0604f');buzz(40);
+  const st=$('stage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');
+  G.missT=G.missT.filter(x=>now-x<2500);G.missT.push(now);
+  if(G.missT.length>=3){
+   G.lock=now+3000;G.missT=[];st.classList.add('locked');const gs=G;
+   say('Too many wild guesses. Steady your hands for 3 seconds.');
+   setTimeout(()=>{if(G!==gs)return;st.classList.remove('locked');if($('tip').textContent.startsWith('Too many'))say('');},3000);
+  }
+  hud();
+ }
+};
+$('hint').onclick=()=>{
+ if(!G||!G.on||!G.hints||Date.now()<G.lock)return;
+ const vis=[...document.querySelectorAll('#list .chip:not(.done)')].map(c=>+c.id.slice(1));if(!vis.length)return;
+ const p=SCENES[G.si].place[vis[Math.random()*vis.length|0]];G.hints--;G.score=Math.max(0,G.score-250);
+ $('hint').textContent=`Hint ${G.hints}`;hud();
+ const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',p[1]);c.setAttribute('cy',p[2]);c.setAttribute('r',46);c.setAttribute('class','ring');$('fxl').appendChild(c);setTimeout(()=>c.remove(),3000);
+ const l=$('lamp');if(l){l.setAttribute('cx',p[1]);l.setAttribute('cy',p[2]);}
+ const st=$('stage'),svg=st.firstElementChild,q=svg.createSVGPoint();q.x=p[1];q.y=p[2];
+ const sp=q.matrixTransform(svg.getScreenCTM()),r=st.getBoundingClientRect();
+ st.scrollBy({left:sp.x-(r.left+r.width/2),top:sp.y-(r.top+r.height/2),behavior:'smooth'});
+};
+$('zoomB').onclick=()=>{const st=$('stage'),cx=(st.scrollLeft+st.clientWidth/2)/st.scrollWidth,cy=(st.scrollTop+st.clientHeight/2)/st.scrollHeight;
+ const z=st.classList.toggle('zoom');$('zoomB').setAttribute('aria-pressed',z);$('zoomB').textContent=z?'Zoom out':'Zoom';
+ st.scrollLeft=cx*st.scrollWidth-st.clientWidth/2;st.scrollTop=cy*st.scrollHeight-st.clientHeight/2;};
+$('quit').onclick=()=>{clearInterval(tick);G=null;toBoard();};
+const finish=()=>{
+ clearInterval(tick);
+ const sc=SCENES[G.si],n=G.targets.length,l=Math.ceil(left()),bonus=l*15,total=G.score+bonus,st=total>=n*1000?3:total>=n*750?2:1;
+ const first=!S.done.includes(sc.id);
+ S.best[sc.id]=S.best[sc.id]||{};S.best[sc.id][G.mode]=Math.max(S.best[sc.id][G.mode]||0,st);
+ if(first)S.done.push(sc.id);save();
+ $('result').innerHTML=`<h3>${sc.name}</h3><div class="big" aria-label="${st} of 3 stars">${stars(st)}</div>
+ <div class="figs"><span><b>${total.toLocaleString()}</b>score</span><span><b>${fmt(l)}</b>time left</span><span><b>${G.misses}</b>misses</span><span><b>+${bonus.toLocaleString()}</b>time bonus</span></div>
+ ${first?`<div class="wire"><b>New evidence · ${sc.clueCard[0]}</b>${sc.clueCard[1]}</div>`:''}
+ <div class="row" style="justify-content:center"><button class="btn" id="cont">Continue</button><button class="ghost" id="again">Play again</button></div>`;
+ $('res').classList.add('on');
+ const si=G.si,mode=G.mode;G=null;
+ $('cont').onclick=()=>{$('res').classList.remove('on');first?talk(sc.outro,toBoard):toBoard();};
+ $('again').onclick=()=>{$('res').classList.remove('on');play(si,mode);};
+ $('cont').focus();
+};
+const timeUp=()=>{
+ G.on=false;clearInterval(tick);
+ const sc=SCENES[G.si],si=G.si,mode=G.mode;
+ $('result').innerHTML=`<h3>The trail went cold</h3><p>You found ${G.found.size} of ${G.targets.length} items before time ran out in ${sc.name}. Each miss costs five seconds, so a careful search is often the faster one.</p>
+ <div class="row" style="justify-content:center"><button class="btn" id="again">Try again</button><button class="ghost" id="cont">Case board</button></div>`;
+ G=null;$('res').classList.add('on');
+ $('cont').onclick=()=>{$('res').classList.remove('on');toBoard();};
+ $('again').onclick=()=>{$('res').classList.remove('on');play(si,mode);};
+ $('again').focus();
+};
+
+// home
+{const r=rnd(3);$('stars').innerHTML=loop(70,i=>`<circle cx="${r()*1200}" cy="${r()*470}" r="${r()>.8?2.2:1.2}" fill="#f1e8d6" opacity="${(.25+r()*.5).toFixed(2)}"/>`);}
+const homeLabel=()=>{$('go').textContent=S.prologue?'Continue the case':'Begin the case';};
+$('go').onclick=()=>{if(S.prologue)toBoard();else talk(PROLOGUE,()=>{S.prologue=true;save();toBoard();});};
+let armed=false;
+$('reset').onclick=()=>{if(!armed){armed=true;$('reset').textContent='Tap again to erase progress';setTimeout(()=>{armed=false;$('reset').textContent='Start over';},3000);return;}S=fresh();save();armed=false;$('reset').textContent='Progress erased';homeLabel();};
+$('toHome').onclick=()=>{homeLabel();screen('home');};
+
+const start=d=>{
+ let saved=null;try{saved=JSON.parse(localStorage.getItem('hartwell1'))}catch(e){}
+ const src=(d&&d.done)?d:saved;
+ if(src&&Array.isArray(src.done))S={prologue:!!src.prologue,done:src.done,best:src.best||{}};
+ homeLabel();
+};
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+}
+</script>
+</body>
+</html>
